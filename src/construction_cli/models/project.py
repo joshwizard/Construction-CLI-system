@@ -14,6 +14,7 @@ class Project(Base):
     status = Column(String(20), default="active")
     
     phases = relationship("Phase", back_populates="project")
+    milestones = relationship("Milestone", back_populates="project")
 
 class Phase(Base):
     __tablename__ = "phases"
@@ -26,3 +27,15 @@ class Phase(Base):
     status = Column(String(20), default="planned")
     
     project = relationship("Project", back_populates="phases")
+
+class Milestone(Base):
+    __tablename__ = "milestones"
+    
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("projects.id"))
+    name = Column(String(100), nullable=False)
+    target_date = Column(Date)
+    completion_date = Column(Date)
+    status = Column(String(20), default="pending")
+    
+    project = relationship("Project", back_populates="milestones")

@@ -1,6 +1,6 @@
 import click
 from ..utils.database import get_session, init_db
-from ..models.project import Project, Phase
+from ..models.project import Project, Phase, Milestone
 
 @click.group()
 def project():
@@ -147,4 +147,77 @@ def list(project_id):
     finally:
         session.close()
 
+@click.group()
+def milestones():
+    """Project milestones management"""
+    pass
+
+@milestones.command()
+@click.argument('name')
+@click.option('--project-id', required=True, type=int, help='Project ID')
+@click.option('--target-date', help='Target date (YYYY-MM-DD)')
+def add(name, project_id, target_date):
+    """Add a milestone to a project"""
+    from datetime import datetime
+    session = get_session()
+    try:
+        project = session.query(Project).filter(Project.id == project_id).first()
+        if not project:
+            click.echo("Project not found")
+            return
+        
+        target_dt = datetime.strptime(target_date, "%Y-%m-%d").date() if target_date else None
+        new_milestone = Milestone(name=name, project_id=project_id, target_date=target_dt)
+        session.add(new_milestone)
+        session.commit()
+        click.echo(f"Added milestone: {name} (ID: {new_milestone.id}) to project {project.name}")
+        if target_date:
+            click.echo(f"Target date: {target_date}")
+    finally:
+        session.close()
+
+@milestones.command()
+@click.option('--project-id', required=True, type=int, help='Project ID')
+def list(project_id):
+    """List milestones for a project"""
+    session = get_session()
+    try:
+        project = session.query(Project).filter(Project.id == project_id).first()
+        if not project:
+            click.echo("Project not found")
+            return
+        
+        milestones = session.query(Milestone).filter(Milestone.project_id == project_id).all()
+        if not milestones:
+            click.echo(f"No milestones found for project: {project.name}")
+            return
+        
+        click.echo(f"Milestones for project: {project.name}")
+        for m in milestones:
+            target = m.target_date.strftime("%Y-%m-%d") if m.target_date else "N/A"
+            completion = m.completion_date.strftime("%Y-%m-%d") if m.completion_date else "N/A"
+            click.echo(f"{m.id}. {m.name} - Target: {target} - Status: {m.status}")
+    finally:
+        session.close()
+
+@milestones.command()
+@click.option('--milestone-id', required=True, type=int, help='Milestone ID')
+def complete(milestone_id):
+    """Mark milestone as completed"""
+    from datetime import date
+    session = get_session()
+    try:
+        milestone = session.query(Milestone).filter(Milestone.id == milestone_id).first()
+        if not milestone:
+            click.echo("Milestone not found")
+            return
+        
+        milestone.status = "completed"
+        milestone.completion_date = date.today()
+        session.commit()
+        click.echo(f"Milestone '{milestone.name}' marked as completed")
+    finally:
+        session.close()
+
 project.add_command(phases)
+project.add_command(milestones)

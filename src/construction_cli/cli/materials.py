@@ -1,6 +1,6 @@
 import click
 from ..utils.database import get_session, init_db
-from ..models.material import Material
+from ..models.material import Material, Supplier
 
 @click.group()
 def materials():
