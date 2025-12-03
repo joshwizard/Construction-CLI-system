@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey
 from sqlalchemy.orm import relationship
 from ..utils.database import Base
 
@@ -32,3 +32,17 @@ class Inventory(Base):
     location = Column(String(100), default="warehouse")
     
     material = relationship("Material", back_populates="inventory")
+
+class Order(Base):
+    __tablename__ = "orders"
+    
+    id = Column(Integer, primary_key=True)
+    material_id = Column(Integer, ForeignKey("materials.id"))
+    supplier_id = Column(Integer, ForeignKey("suppliers.id"))
+    quantity = Column(Float, nullable=False)
+    order_date = Column(Date)
+    delivery_date = Column(Date)
+    status = Column(String(20), default="pending")
+    
+    material = relationship("Material")
+    supplier = relationship("Supplier")
