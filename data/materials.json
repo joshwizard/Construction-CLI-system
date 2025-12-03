@@ -1,0 +1,16 @@
+[
+  {
+    "id": 1,
+    "name": "Concrete",
+    "unit": "cubic-yard",
+    "cost_per_unit": 120.0,
+    "quantity": 0
+  },
+  {
+    "id": 2,
+    "name": "Steel Rebar",
+    "unit": "ton",
+    "cost_per_unit": 800.0,
+    "quantity": 0
+  }
+]

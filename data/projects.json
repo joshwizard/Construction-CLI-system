@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "name": "Downtown Office",
+    "budget": 500000.0,
+    "status": "active"
+  },
+  {
+    "id": 2,
+    "name": "Shopping Mall",
+    "budget": 2000000.0,
+    "status": "active"
+  }
+]
