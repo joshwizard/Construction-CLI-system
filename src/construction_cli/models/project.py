@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Float, Date
+from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey
+from sqlalchemy.orm import relationship
 from ..utils.database import Base
 
 class Project(Base):
@@ -11,3 +12,17 @@ class Project(Base):
     start_date = Column(Date)
     end_date = Column(Date)
     status = Column(String(20), default="active")
+    
+    phases = relationship("Phase", back_populates="project")
+
+class Phase(Base):
+    __tablename__ = "phases"
+    
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("projects.id"))
+    name = Column(String(100), nullable=False)
+    duration = Column(Integer)
+    start_date = Column(Date)
+    status = Column(String(20), default="planned")
+    
+    project = relationship("Project", back_populates="phases")
