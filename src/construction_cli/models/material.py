@@ -21,3 +21,14 @@ class Material(Base):
     supplier_id = Column(Integer, ForeignKey("suppliers.id"))
     
     supplier = relationship("Supplier", back_populates="materials")
+    inventory = relationship("Inventory", back_populates="material", uselist=False)
+
+class Inventory(Base):
+    __tablename__ = "inventory"
+    
+    id = Column(Integer, primary_key=True)
+    material_id = Column(Integer, ForeignKey("materials.id"))
+    quantity = Column(Float, default=0)
+    location = Column(String(100), default="warehouse")
+    
+    material = relationship("Material", back_populates="inventory")
