@@ -1,6 +1,6 @@
 import click
-from ..utils.database import get_session, init_db
-from ..models.project import Project, Phase, Milestone
+from ..utils.database import init_db
+from ..services.project_service import ProjectService
 
 @click.group()
 def project():
@@ -14,43 +14,31 @@ def project():
 @click.option('--location', help='Project location')
 def create(name, budget, start_date, location):
     """Create a new project"""
-    from datetime import datetime
     init_db()
-    session = get_session()
-    try:
-        start_dt = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
-        new_project = Project(name=name, budget=budget, start_date=start_dt, location=location)
-        session.add(new_project)
-        session.commit()
-        click.echo(f"Created project: {name} (ID: {new_project.id})")
-        if budget:
-            click.echo(f"Budget: ${budget:,.2f}")
-        if location:
-            click.echo(f"Location: {location}")
-    finally:
-        session.close()
+    service = ProjectService()
+    project = service.create_project(name, budget, start_date, location)
+    
+    click.echo(f"Created project: {name} (ID: {project.id})")
+    if budget:
+        click.echo(f"Budget: ${budget:,.2f}")
+    if location:
+        click.echo(f"Location: {location}")
 
 @project.command()
 @click.option('--status', help='Filter by status')
 def list(status):
     """List all projects"""
-    session = get_session()
-    try:
-        query = session.query(Project)
-        if status:
-            query = query.filter(Project.status == status)
-        projects = query.all()
-        
-        if not projects:
-            click.echo("No projects found")
-            return
-        
-        click.echo("Project List:")
-        for p in projects:
-            budget = f"${p.budget:,.0f}" if p.budget else "N/A"
-            click.echo(f"{p.id}. {p.name} - {budget} - {p.status}")
-    finally:
-        session.close()
+    service = ProjectService()
+    projects = service.list_projects(status)
+    
+    if not projects:
+        click.echo("No projects found")
+        return
+    
+    click.echo("Project List:")
+    for p in projects:
+        budget = f"${p.budget:,.0f}" if p.budget else "N/A"
+        click.echo(f"{p.id}. {p.name} - {budget} - {p.status}")
 
 @project.command()
 @click.option('--project-id', required=True, type=int, help='Project ID')
@@ -108,21 +96,16 @@ def phases():
 @click.option('--duration', type=int, help='Duration in days')
 def add(name, project_id, duration):
     """Add a phase to a project"""
-    session = get_session()
-    try:
-        project = session.query(Project).filter(Project.id == project_id).first()
-        if not project:
-            click.echo("Project not found")
-            return
-        
-        new_phase = Phase(name=name, project_id=project_id, duration=duration)
-        session.add(new_phase)
-        session.commit()
-        click.echo(f"Added phase: {name} (ID: {new_phase.id}) to project {project.name}")
-        if duration:
-            click.echo(f"Duration: {duration} days")
-    finally:
-        session.close()
+    service = ProjectService()
+    project = service.get_project(project_id)
+    if not project:
+        click.echo("Project not found")
+        return
+    
+    phase = service.add_phase(name, project_id, duration)
+    click.echo(f"Added phase: {name} (ID: {phase.id}) to project {project.name}")
+    if duration:
+        click.echo(f"Duration: {duration} days")
 
 @phases.command()
 @click.option('--project-id', required=True, type=int, help='Project ID')

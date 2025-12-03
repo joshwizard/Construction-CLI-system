@@ -1,6 +1,6 @@
 import click
-from ..utils.database import get_session, init_db
-from ..models.material import Material, Supplier, Inventory, Order
+from ..utils.database import init_db
+from ..services.material_service import MaterialService
 
 @click.group()
 def materials():
@@ -15,43 +15,28 @@ def materials():
 def add(name, unit, cost_per_unit, supplier):
     """Add a new material"""
     init_db()
-    session = get_session()
-    try:
-        supplier_id = None
-        if supplier:
-            supplier_obj = session.query(Supplier).filter(Supplier.name == supplier).first()
-            if not supplier_obj:
-                supplier_obj = Supplier(name=supplier)
-                session.add(supplier_obj)
-                session.flush()
-            supplier_id = supplier_obj.id
-        
-        new_material = Material(name=name, unit=unit, cost_per_unit=cost_per_unit, supplier_id=supplier_id)
-        session.add(new_material)
-        session.commit()
-        click.echo(f"Added material: {name} (ID: {new_material.id})")
-        click.echo(f"Unit: {unit}")
-        click.echo(f"Cost per unit: ${cost_per_unit:.2f}")
-        if supplier:
-            click.echo(f"Supplier: {supplier}")
-    finally:
-        session.close()
+    service = MaterialService()
+    material = service.add_material(name, unit, cost_per_unit, supplier)
+    
+    click.echo(f"Added material: {name} (ID: {material.id})")
+    click.echo(f"Unit: {unit}")
+    click.echo(f"Cost per unit: ${cost_per_unit:.2f}")
+    if supplier:
+        click.echo(f"Supplier: {supplier}")
 
 @materials.command()
 def list():
     """List all materials"""
-    session = get_session()
-    try:
-        materials = session.query(Material).all()
-        if not materials:
-            click.echo("No materials found")
-            return
-        
-        click.echo("Materials List:")
-        for m in materials:
-            click.echo(f"{m.id}. {m.name} - {m.unit} - ${m.cost_per_unit:.2f}")
-    finally:
-        session.close()
+    service = MaterialService()
+    materials = service.list_materials()
+    
+    if not materials:
+        click.echo("No materials found")
+        return
+    
+    click.echo("Materials List:")
+    for m in materials:
+        click.echo(f"{m.id}. {m.name} - {m.unit} - ${m.cost_per_unit:.2f}")
 
 @materials.command()
 @click.option('--low-stock', is_flag=True, help='Show only low stock items')
