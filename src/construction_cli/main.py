@@ -10,9 +10,7 @@ def buildcli():
 
 # Add all subcommands for flat help display
 from .cli.project import create, list as project_list, status, update, phases, milestones
-from .utils.database import get_session
-from .models.project import Project, Phase, Milestone
-from .cli.materials import add, list as materials_list, inventory, stock, order, orders, suppliers
+from .cli.materials import add, list as materials_list, inventory, stock, order, orders, suppliers, delete
 
 buildcli.add_command(project)
 buildcli.add_command(materials)
@@ -29,6 +27,7 @@ buildcli.add_command(stock, name='materials-stock')
 buildcli.add_command(order, name='materials-order')
 buildcli.add_command(orders, name='materials-orders')
 buildcli.add_command(suppliers, name='materials-suppliers')
+buildcli.add_command(delete, name='materials-delete')
 
 if __name__ == '__main__':
     buildcli()

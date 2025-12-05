@@ -1,6 +1,7 @@
 import click
-from ..utils.database import init_db
+from ..utils.database import init_db, get_session
 from ..services.project_service import ProjectService
+from ..models.project import Project, Phase, Milestone
 
 @click.group()
 def project():
@@ -42,7 +43,7 @@ def create():
     service = ProjectService()
     project = service.create_project(name, budget, start_date, location)
     
-    click.echo("\n✅ Project created successfully!")
+    click.echo("\nProject created successfully!")
     click.echo(f"Name: {name}")
     click.echo(f"ID: {project.id}")
     if budget:
@@ -159,7 +160,7 @@ def add():
     
     phase = service.add_phase(name, project_id, duration)
     
-    click.echo("\n✅ Phase added successfully!")
+    click.echo("\nPhase added successfully!")
     click.echo(f"Phase: {name}")
     click.echo(f"ID: {phase.id}")
     click.echo(f"Project: {project.name}")
@@ -237,7 +238,7 @@ def add():
     
     milestone = service.add_milestone(name, project_id, target_date)
     
-    click.echo("\n✅ Milestone added successfully!")
+    click.echo("\nMilestone added successfully!")
     click.echo(f"Milestone: {name}")
     click.echo(f"ID: {milestone.id}")
     click.echo(f"Project: {project.name}")

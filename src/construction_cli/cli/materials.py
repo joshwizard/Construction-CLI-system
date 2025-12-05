@@ -30,7 +30,7 @@ def add():
     service = MaterialService()
     material = service.add_material(name, unit, cost_per_unit, supplier)
     
-    click.echo("\n✅ Material added successfully!")
+    click.echo("\nMaterial added successfully!")
     click.echo(f"Name: {name}")
     click.echo(f"ID: {material.id}")
     click.echo(f"Unit: {unit}")
@@ -109,12 +109,12 @@ def stock():
     inventory = service.update_stock(material_id, quantity, location)
     
     if inventory:
-        click.echo("\n✅ Stock updated successfully!")
+        click.echo("\nStock updated successfully!")
         click.echo(f"Material: {material.name}")
         click.echo(f"Quantity: {quantity} {material.unit}")
         click.echo(f"Location: {location}")
     else:
-        click.echo("\n❌ Failed to update stock")
+        click.echo("\nFailed to update stock")
 
 @click.group()
 def suppliers():
@@ -132,7 +132,7 @@ def add():
     service = MaterialService()
     supplier = service.add_supplier(name, contact)
     
-    click.echo("\n✅ Supplier added successfully!")
+    click.echo("\nSupplier added successfully!")
     click.echo(f"Name: {name}")
     click.echo(f"ID: {supplier.id}")
     if contact:
@@ -225,14 +225,14 @@ def order():
     order = service.create_order(material_id, quantity, supplier_id, delivery_dt)
     
     if not order:
-        click.echo("\n❌ Failed to create order. Check supplier availability.")
+        click.echo("\nFailed to create order. Check supplier availability.")
         return
     
     # Show success
     supplier = next((s for s in suppliers if s.id == order.supplier_id), None)
     total_cost = quantity * material.cost_per_unit if material.cost_per_unit else 0
     
-    click.echo("\n✅ Order created successfully!")
+    click.echo("\nOrder created successfully!")
     click.echo(f"Order ID: {order.id}")
     click.echo(f"Material: {material.name}")
     click.echo(f"Quantity: {quantity} {material.unit}")
@@ -256,5 +256,41 @@ def orders():
         delivery = order.delivery_date.strftime("%Y-%m-%d") if order.delivery_date else "TBD"
         total = order.quantity * order.material.cost_per_unit if order.material.cost_per_unit else 0
         click.echo(f"{order.id}. {order.material.name} - {order.quantity} {order.material.unit} - {order.supplier.name} - ${total:.2f} - {order.status} - Delivery: {delivery}")
+
+@materials.command()
+def delete():
+    """Delete a material"""
+    service = MaterialService()
+    
+    # Show available materials
+    materials = service.list_materials()
+    if not materials:
+        click.echo("No materials found.")
+        return
+    
+    click.echo("\n=== Delete Material ===")
+    click.echo("Available materials:")
+    for m in materials:
+        click.echo(f"  {m.id}. {m.name} ({m.unit}) - ${m.cost_per_unit:.2f}")
+    
+    while True:
+        try:
+            material_id = click.prompt("\nEnter material ID to delete", type=int)
+            material = next((m for m in materials if m.id == material_id), None)
+            if material:
+                break
+            else:
+                click.echo("Invalid material ID. Please try again.")
+        except (ValueError, click.ClickException):
+            click.echo("Please enter a valid number")
+    
+    # Confirm deletion
+    if click.confirm(f"Are you sure you want to delete '{material.name}'?"):
+        if service.delete_material(material_id):
+            click.echo(f"\nMaterial '{material.name}' deleted successfully!")
+        else:
+            click.echo(f"\nFailed to delete material '{material.name}'")
+    else:
+        click.echo("\nDeletion cancelled.")
 
 materials.add_command(suppliers)

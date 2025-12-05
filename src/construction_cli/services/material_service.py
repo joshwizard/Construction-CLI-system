@@ -115,3 +115,18 @@ class MaterialService:
             return session.query(Order).join(Material).join(Supplier).all()
         finally:
             session.close()
+    
+    def delete_material(self, material_id):
+        session = get_session()
+        try:
+            material = session.query(Material).filter(Material.id == material_id).first()
+            if material:
+                session.delete(material)
+                session.commit()
+                return True
+            return False
+        except Exception:
+            session.rollback()
+            return False
+        finally:
+            session.close()
