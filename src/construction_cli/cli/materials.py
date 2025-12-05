@@ -1,6 +1,7 @@
 import click
-from ..utils.database import init_db
+from ..utils.database import init_db, get_session
 from ..services.material_service import MaterialService
+from ..models.material import Material, Supplier, Inventory, Order
 
 @click.group()
 def materials():
@@ -8,17 +9,30 @@ def materials():
     pass
 
 @materials.command()
-@click.argument('name')
-@click.option('--unit', required=True, help='Unit of measurement')
-@click.option('--cost-per-unit', type=float, required=True, help='Cost per unit')
-@click.option('--supplier', help='Supplier name')
-def add(name, unit, cost_per_unit, supplier):
+def add():
     """Add a new material"""
     init_db()
+    
+    click.echo("\n=== Add New Material ===")
+    name = click.prompt("Material name")
+    unit = click.prompt("Unit of measurement (e.g., cubic-yard, ton, piece)")
+    
+    while True:
+        try:
+            cost_per_unit = click.prompt("Cost per unit", type=float)
+            break
+        except click.BadParameter:
+            click.echo("Please enter a valid number")
+    
+    supplier = click.prompt("Supplier name (optional, press Enter to skip)", default="", show_default=False)
+    supplier = supplier if supplier.strip() else None
+    
     service = MaterialService()
     material = service.add_material(name, unit, cost_per_unit, supplier)
     
-    click.echo(f"Added material: {name} (ID: {material.id})")
+    click.echo("\n✅ Material added successfully!")
+    click.echo(f"Name: {name}")
+    click.echo(f"ID: {material.id}")
     click.echo(f"Unit: {unit}")
     click.echo(f"Cost per unit: ${cost_per_unit:.2f}")
     if supplier:
@@ -43,53 +57,64 @@ def list():
 @click.option('--threshold', type=float, default=10, help='Low stock threshold')
 def inventory(low_stock, threshold):
     """Show inventory status"""
-    session = get_session()
-    try:
-        query = session.query(Material, Inventory).outerjoin(Inventory)
-        
-        if low_stock:
-            query = query.filter(Inventory.quantity <= threshold)
-        
-        results = query.all()
-        if not results:
-            click.echo("No inventory items found")
-            return
-        
-        click.echo("Inventory Status:")
-        for material, inventory in results:
-            qty = inventory.quantity if inventory else 0
-            location = inventory.location if inventory else "N/A"
-            if not low_stock or (inventory and inventory.quantity <= threshold):
-                click.echo(f"{material.name}: {qty} {material.unit} - Location: {location}")
-    finally:
-        session.close()
+    service = MaterialService()
+    results = service.get_inventory(threshold if low_stock else None)
+    
+    if not results:
+        click.echo("No inventory items found")
+        return
+    
+    click.echo("Inventory Status:")
+    for material, inventory in results:
+        qty = inventory.quantity if inventory else 0
+        location = inventory.location if inventory else "N/A"
+        click.echo(f"{material.name}: {qty} {material.unit} - Location: {location}")
 
 @materials.command()
-@click.option('--material-id', required=True, type=int, help='Material ID')
-@click.option('--quantity', required=True, type=float, help='New quantity')
-@click.option('--location', default='warehouse', help='Storage location')
-def stock(material_id, quantity, location):
+def stock():
     """Update material stock quantity"""
-    session = get_session()
-    try:
-        material = session.query(Material).filter(Material.id == material_id).first()
-        if not material:
-            click.echo("Material not found")
-            return
-        
-        inventory = session.query(Inventory).filter(Inventory.material_id == material_id).first()
-        if inventory:
-            inventory.quantity = quantity
-            inventory.location = location
-        else:
-            inventory = Inventory(material_id=material_id, quantity=quantity, location=location)
-            session.add(inventory)
-        
-        session.commit()
-        click.echo(f"Updated stock for {material.name}: {quantity} {material.unit}")
+    service = MaterialService()
+    
+    # Show available materials first
+    materials = service.list_materials()
+    if not materials:
+        click.echo("No materials found. Add materials first.")
+        return
+    
+    click.echo("\n=== Update Stock ===")
+    click.echo("Available materials:")
+    for m in materials:
+        click.echo(f"  {m.id}. {m.name} ({m.unit})")
+    
+    while True:
+        try:
+            material_id = click.prompt("\nEnter material ID", type=int)
+            material = next((m for m in materials if m.id == material_id), None)
+            if material:
+                break
+            else:
+                click.echo("Invalid material ID. Please try again.")
+        except click.BadParameter:
+            click.echo("Please enter a valid number")
+    
+    while True:
+        try:
+            quantity = click.prompt(f"Enter quantity ({material.unit})", type=float)
+            break
+        except click.BadParameter:
+            click.echo("Please enter a valid number")
+    
+    location = click.prompt("Storage location", default="warehouse")
+    
+    inventory = service.update_stock(material_id, quantity, location)
+    
+    if inventory:
+        click.echo("\n✅ Stock updated successfully!")
+        click.echo(f"Material: {material.name}")
+        click.echo(f"Quantity: {quantity} {material.unit}")
         click.echo(f"Location: {location}")
-    finally:
-        session.close()
+    else:
+        click.echo("\n❌ Failed to update stock")
 
 @click.group()
 def suppliers():
@@ -97,105 +122,139 @@ def suppliers():
     pass
 
 @suppliers.command()
-@click.argument('name')
-@click.option('--contact', help='Contact information')
-def add(name, contact):
+def add():
     """Add a new supplier"""
-    session = get_session()
-    try:
-        new_supplier = Supplier(name=name, contact=contact)
-        session.add(new_supplier)
-        session.commit()
-        click.echo(f"Added supplier: {name} (ID: {new_supplier.id})")
-        if contact:
-            click.echo(f"Contact: {contact}")
-    finally:
-        session.close()
+    click.echo("\n=== Add New Supplier ===")
+    name = click.prompt("Supplier name")
+    contact = click.prompt("Contact information (optional, press Enter to skip)", default="", show_default=False)
+    contact = contact if contact.strip() else None
+    
+    service = MaterialService()
+    supplier = service.add_supplier(name, contact)
+    
+    click.echo("\n✅ Supplier added successfully!")
+    click.echo(f"Name: {name}")
+    click.echo(f"ID: {supplier.id}")
+    if contact:
+        click.echo(f"Contact: {contact}")
 
 @suppliers.command()
 def list():
     """List all suppliers"""
-    session = get_session()
-    try:
-        suppliers = session.query(Supplier).all()
-        if not suppliers:
-            click.echo("No suppliers found")
-            return
-        
-        click.echo("Suppliers List:")
-        for s in suppliers:
-            contact = s.contact or "N/A"
-            click.echo(f"{s.id}. {s.name} - {contact}")
-    finally:
-        session.close()
+    service = MaterialService()
+    suppliers = service.list_suppliers()
+    
+    if not suppliers:
+        click.echo("No suppliers found")
+        return
+    
+    click.echo("Suppliers List:")
+    for s in suppliers:
+        contact = s.contact or "N/A"
+        click.echo(f"{s.id}. {s.name} - {contact}")
 
 @materials.command()
-@click.option('--material-id', required=True, type=int, help='Material ID')
-@click.option('--quantity', required=True, type=float, help='Quantity to order')
-@click.option('--supplier-id', type=int, help='Supplier ID')
-@click.option('--delivery-date', help='Expected delivery date (YYYY-MM-DD)')
-def order(material_id, quantity, supplier_id, delivery_date):
+def order():
     """Create a material order"""
-    from datetime import datetime, date
-    session = get_session()
-    try:
-        material = session.query(Material).filter(Material.id == material_id).first()
-        if not material:
-            click.echo("Material not found")
-            return
+    from datetime import datetime
+    service = MaterialService()
+    
+    # Show available materials
+    materials = service.list_materials()
+    if not materials:
+        click.echo("No materials found. Add materials first.")
+        return
+    
+    click.echo("\n=== Create Material Order ===")
+    click.echo("Available materials:")
+    for m in materials:
+        click.echo(f"  {m.id}. {m.name} ({m.unit}) - ${m.cost_per_unit:.2f}")
+    
+    # Select material
+    while True:
+        try:
+            material_id = click.prompt("\nEnter material ID", type=int)
+            material = next((m for m in materials if m.id == material_id), None)
+            if material:
+                break
+            else:
+                click.echo("Invalid material ID. Please try again.")
+        except click.BadParameter:
+            click.echo("Please enter a valid number")
+    
+    # Enter quantity
+    while True:
+        try:
+            quantity = click.prompt(f"Enter quantity ({material.unit})", type=float)
+            break
+        except click.BadParameter:
+            click.echo("Please enter a valid number")
+    
+    # Show available suppliers
+    suppliers = service.list_suppliers()
+    supplier_id = None
+    
+    if suppliers:
+        click.echo("\nAvailable suppliers:")
+        for s in suppliers:
+            click.echo(f"  {s.id}. {s.name} - {s.contact or 'No contact'}")
         
-        # Use material's supplier if no supplier specified
-        if not supplier_id:
-            supplier_id = material.supplier_id
+        if material.supplier_id:
+            default_supplier = next((s for s in suppliers if s.id == material.supplier_id), None)
+            if default_supplier:
+                click.echo(f"\nDefault supplier: {default_supplier.name}")
         
-        if not supplier_id:
-            click.echo("No supplier specified and material has no default supplier")
-            return
-        
-        supplier = session.query(Supplier).filter(Supplier.id == supplier_id).first()
-        if not supplier:
-            click.echo("Supplier not found")
-            return
-        
-        delivery_dt = datetime.strptime(delivery_date, "%Y-%m-%d").date() if delivery_date else None
-        
-        new_order = Order(
-            material_id=material_id,
-            supplier_id=supplier_id,
-            quantity=quantity,
-            order_date=date.today(),
-            delivery_date=delivery_dt
-        )
-        session.add(new_order)
-        session.commit()
-        
-        total_cost = quantity * material.cost_per_unit if material.cost_per_unit else 0
-        click.echo(f"Created order (ID: {new_order.id})")
-        click.echo(f"Material: {material.name}")
-        click.echo(f"Quantity: {quantity} {material.unit}")
-        click.echo(f"Supplier: {supplier.name}")
-        click.echo(f"Total Cost: ${total_cost:.2f}")
-        if delivery_date:
-            click.echo(f"Expected Delivery: {delivery_date}")
-    finally:
-        session.close()
+        supplier_choice = click.prompt("Enter supplier ID (or press Enter for material's default)", default="", show_default=False)
+        if supplier_choice.strip():
+            try:
+                supplier_id = int(supplier_choice)
+            except ValueError:
+                click.echo("Invalid supplier ID, using material's default")
+    
+    # Delivery date
+    delivery_date = click.prompt("Delivery date (YYYY-MM-DD, optional)", default="", show_default=False)
+    delivery_dt = None
+    if delivery_date.strip():
+        try:
+            delivery_dt = datetime.fromisoformat(delivery_date).date()
+        except ValueError:
+            click.echo("Invalid date format, order will be created without delivery date")
+            delivery_dt = None
+    
+    # Create order
+    order = service.create_order(material_id, quantity, supplier_id, delivery_dt)
+    
+    if not order:
+        click.echo("\n❌ Failed to create order. Check supplier availability.")
+        return
+    
+    # Show success
+    supplier = next((s for s in suppliers if s.id == order.supplier_id), None)
+    total_cost = quantity * material.cost_per_unit if material.cost_per_unit else 0
+    
+    click.echo("\n✅ Order created successfully!")
+    click.echo(f"Order ID: {order.id}")
+    click.echo(f"Material: {material.name}")
+    click.echo(f"Quantity: {quantity} {material.unit}")
+    click.echo(f"Supplier: {supplier.name if supplier else 'Unknown'}")
+    click.echo(f"Total Cost: ${total_cost:.2f}")
+    if delivery_dt:
+        click.echo(f"Expected Delivery: {delivery_dt}")
 
 @materials.command()
 def orders():
     """List all material orders"""
-    session = get_session()
-    try:
-        orders = session.query(Order).join(Material).join(Supplier).all()
-        if not orders:
-            click.echo("No orders found")
-            return
-        
-        click.echo("Material Orders:")
-        for order in orders:
-            delivery = order.delivery_date.strftime("%Y-%m-%d") if order.delivery_date else "TBD"
-            total = order.quantity * order.material.cost_per_unit if order.material.cost_per_unit else 0
-            click.echo(f"{order.id}. {order.material.name} - {order.quantity} {order.material.unit} - {order.supplier.name} - ${total:.2f} - {order.status} - Delivery: {delivery}")
-    finally:
-        session.close()
+    service = MaterialService()
+    orders = service.list_orders()
+    
+    if not orders:
+        click.echo("No orders found")
+        return
+    
+    click.echo("Material Orders:")
+    for order in orders:
+        delivery = order.delivery_date.strftime("%Y-%m-%d") if order.delivery_date else "TBD"
+        total = order.quantity * order.material.cost_per_unit if order.material.cost_per_unit else 0
+        click.echo(f"{order.id}. {order.material.name} - {order.quantity} {order.material.unit} - {order.supplier.name} - ${total:.2f} - {order.status} - Delivery: {delivery}")
 
 materials.add_command(suppliers)

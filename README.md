@@ -4,11 +4,20 @@ A simple command-line tool for managing construction projects, materials, and su
 
 ## 🚀 Quick Install
 
-### Windows Users
+### Option 1: Web Interface (Easiest)
+1. Run `./start-web.sh` (Mac/Linux) or `start-web.bat` (Windows)
+2. **Wait for "Compiled successfully!"** message
+3. Browser opens automatically at http://localhost:3000
+4. Use the web terminal! (Press Ctrl+C to stop server when done)
+
+*Note: The server keeps running - this is normal! See `quick-start.md` for details.*
+
+### Option 2: Command Line
+#### Windows Users
 1. Double-click `install.bat`
 2. Use `buildcli --help` to get started
 
-### Mac/Linux Users  
+#### Mac/Linux Users  
 1. Run `./install.sh`
 2. Use `buildcli --help` to get started
 

@@ -56,6 +56,7 @@ class ProjectService:
             phase = Phase(name=name, project_id=project_id, duration=duration)
             session.add(phase)
             session.commit()
+            session.refresh(phase)
             return phase
         finally:
             session.close()
@@ -78,6 +79,7 @@ class ProjectService:
             milestone = Milestone(name=name, project_id=project_id, target_date=target_dt)
             session.add(milestone)
             session.commit()
+            session.refresh(milestone)
             return milestone
         finally:
             session.close()

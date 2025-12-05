@@ -1,0 +1,148 @@
+.App {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #1e1e1e;
+  color: #ffffff;
+  font-family: 'Courier New', monospace;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #2d2d2d;
+  border-bottom: 1px solid #444;
+}
+
+.header h1 {
+  margin: 0;
+  color: #4CAF50;
+  font-size: 1.5rem;
+}
+
+.clear-btn {
+  background-color: #ff6b6b;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.clear-btn:hover {
+  background-color: #ff5252;
+}
+
+.terminal {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+  background-color: #1e1e1e;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.terminal-line {
+  margin-bottom: 0.2rem;
+  white-space: pre-wrap;
+}
+
+.input-line {
+  display: flex;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.prompt {
+  color: #4CAF50;
+  margin-right: 0.5rem;
+  font-weight: bold;
+}
+
+.terminal-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: inherit;
+  outline: none;
+}
+
+.terminal-input::placeholder {
+  color: #666;
+}
+
+.help-panel {
+  background-color: #2d2d2d;
+  padding: 1rem 2rem;
+  border-top: 1px solid #444;
+}
+
+.help-panel h3 {
+  margin: 0 0 1rem 0;
+  color: #4CAF50;
+}
+
+.command-examples {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.command-examples button {
+  background-color: #444;
+  color: white;
+  border: 1px solid #666;
+  padding: 0.3rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.command-examples button:hover {
+  background-color: #555;
+  border-color: #4CAF50;
+}
+
+.command-examples .special-cmd {
+  background-color: #2196F3;
+  border-color: #1976D2;
+}
+
+.command-examples .special-cmd:hover {
+  background-color: #1976D2;
+  border-color: #0D47A1;
+}
+
+.command-examples .exit-cmd {
+  background-color: #f44336;
+  border-color: #d32f2f;
+}
+
+.command-examples .exit-cmd:hover {
+  background-color: #d32f2f;
+  border-color: #b71c1c;
+}
+
+/* Scrollbar styling */
+.terminal::-webkit-scrollbar {
+  width: 8px;
+}
+
+.terminal::-webkit-scrollbar-track {
+  background: #2d2d2d;
+}
+
+.terminal::-webkit-scrollbar-thumb {
+  background: #666;
+  border-radius: 4px;
+}
+
+.terminal::-webkit-scrollbar-thumb:hover {
+  background: #888;
+}

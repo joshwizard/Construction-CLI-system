@@ -36,6 +36,7 @@ class MaterialService:
             supplier = Supplier(name=name, contact=contact)
             session.add(supplier)
             session.commit()
+            session.refresh(supplier)
             return supplier
         finally:
             session.close()
@@ -103,6 +104,7 @@ class MaterialService:
             )
             session.add(order)
             session.commit()
+            session.refresh(order)
             return order
         finally:
             session.close()
